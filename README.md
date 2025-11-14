@@ -76,16 +76,16 @@ This is normal browser behavior and not a bug.
 git clone https://github.com/yourname/blogger-feed-reader
 
 2. Project Structure
-
-📁 root
- ├── index.html
- ├── style.css
- ├── script.js
- ├── sw.js
- ├── manifest.json
- └── icons/
-       ├── icon-192.png
-       └── icon-512.png
+```txt
+root
+ ├─ index.html
+ ├─ style.css
+ ├─ script.js
+ ├─ sw.js
+ ├─ manifest.json
+ └─ icons
+     ├─ icon-192.png
+     └─ icon-512.png
 
 3. Deploy on GitHub Pages
 
