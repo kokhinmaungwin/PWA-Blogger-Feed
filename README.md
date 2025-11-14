@@ -86,7 +86,7 @@ root
  └─ icons
      ├─ icon-192.png
      └─ icon-512.png
----
+```
 3. Deploy on GitHub Pages
 
 Go to:
