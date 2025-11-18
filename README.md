@@ -97,6 +97,20 @@ Your app will be published instantly.
 
 ---
 
+## Development
+
+To run the app locally:
+
+```bash
+# Clone the repo
+git clone https://github.com/kokhinmaungwin/blogger-feed-pwa.git
+cd blogger-feed-pwa
+
+# Start a simple local server (Python example)
+python3 -m http.server 8080
+
+---
+
 ## 🛠 How to Use
 
 1. Open the app
