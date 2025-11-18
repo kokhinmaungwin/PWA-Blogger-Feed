@@ -109,6 +109,7 @@ cd blogger-feed-pwa
 # Start a simple local server (Python example)
 python3 -m http.server 8080
 
+```
 ---
 
 ## 🛠 How to Use
