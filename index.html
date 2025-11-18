@@ -4,21 +4,38 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Blogger Feed Reader PWA</title>
+
 <link rel="manifest" href="manifest.json" />
 <link rel="stylesheet" href="style.css" />
+
 </head>
 <body>
 
 <h1>Blogger Feed Reader (PWA)</h1>
+
 <label for="feedUrl">Enter Blogger Feed URL:</label>
 <span class="feed-btn">
 <input type="text" id="feedUrl" placeholder="https://yourblog.blogspot.com" />
 <button id="loadFeedBtn">Load Feed</button>
 </span>
-<button id="installBtn" style="display:none;">Install App</button>
+<button id="installBtn">Install App</button>
+
 <div id="feedBox"></div>
 
-<script src="script.js"></script>
+<div id="paginationBox"></div>
+<div id="postModal" class="modal">
+  <div class="modal-box">
 
+    <div class="modal-header">
+      <span id="closeModal" class="closeBtn">&times;</span>
+      <h2 id="modalTitle"></h2>
+    </div>
+
+    <div id="modalBody" class="modal-content"></div>
+
+  </div>
+</div>
+
+<script src="script.js"></script>
 </body>
 </html>
