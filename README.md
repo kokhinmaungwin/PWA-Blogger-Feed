@@ -73,7 +73,7 @@ This is normal browser behavior and not a bug.
 
 1. Clone the Repository
 
-git clone https://github.com/yourname/blogger-feed-reader
+git clone https://github.com/kokhinmaungwin/PWA-Blogger-Feed
 
 2. Project Structure
 ```txt
@@ -150,5 +150,5 @@ MIT License — You are free to customize or modify it.
 
 ## ❤️ Author
 
-Created with passion by [Khin Maung Win]
+Created with passion by Khin Maung Win
 
