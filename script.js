@@ -3,51 +3,48 @@ const feedUrlInput = document.getElementById('feedUrl');
 const loadBtn = document.getElementById('loadFeedBtn');
 const STORAGE_KEY = 'savedFeedUrl';
 
-let currentPage = 1;
-let perPage = 10;
-let nextPageToken = null;
-let prevPageTokens = []; // Stack to keep track of previous tokens for Prev button
+let currentStartIndex = 1;
+const perPage = 10;
 
-// Pagination buttons
+// Pagination buttons container
 const paginationBox = document.createElement("div");
 paginationBox.id = "pagination";
 document.body.appendChild(paginationBox);
 
-async function fetchFeed(url, pageToken = "") {
+// Fetch feed with start-index pagination
+async function fetchFeed(url, startIndex = 1) {
   try {
-    let feedUrl = url.replace(/\/$/, '') + `/feeds/posts/summary?alt=json&max-results=${perPage}`;
-    if (pageToken) {
-      feedUrl += `&pageToken=${pageToken}`;
-    }
+    // Build feed URL with start-index and max-results
+    let feedUrl = url.replace(/\/$/, '') + `/feeds/posts/summary?alt=json&max-results=${perPage}&start-index=${startIndex}`;
 
     const res = await fetch(feedUrl);
     if (!res.ok) throw new Error('Network error');
 
     const data = await res.json();
 
-    // Extract posts
-    const posts = data.feed.entry || [];
+    // Total posts available
+    const totalResults = data.feed.openSearch$totalResults ? parseInt(data.feed.openSearch$totalResults.$t, 10) : 0;
 
-    // Extract nextPageToken if available
-    const nextToken = data.feed.openSearch$startIndex
-      ? data.feed.openSearch$startIndex.$t
-      : null;
+    // Posts array
+    const posts = data.feed.entry || [];
 
     return {
       posts,
-      nextPageToken: nextToken,
+      totalResults,
     };
   } catch (e) {
     console.error(e);
-    return { posts: [], nextPageToken: null };
+    return { posts: [], totalResults: 0 };
   }
 }
 
+// Extract image src from post content if no thumbnail
 function extractImage(desc) {
   const match = desc.match(/<img[^>]+src="([^">]+)"/);
   return match ? match[1] : "";
 }
 
+// Render posts inside feedBox
 function renderFeed(items) {
   if (!items || items.length === 0) {
     feedBox.innerHTML = "<p>No posts found.</p>";
@@ -57,19 +54,20 @@ function renderFeed(items) {
   feedBox.innerHTML = "";
 
   items.forEach(item => {
-    // item.media$thumbnail or item.content
+    // Use media thumbnail if available, else try to extract image from content
     const img = (item.media$thumbnail && item.media$thumbnail.url) || extractImage(item.content.$t);
 
     const div = document.createElement("div");
     div.className = "feed-item";
     div.innerHTML = `
-      ${img ? `<img src="${img}" class="feed-img">` : ""}
+      ${img ? `<img src="${img}" class="feed-img" style="max-width:150px; max-height:100px; margin-bottom:8px;">` : ""}
       <a href="#" data-content="${encodeURIComponent(item.content.$t)}">${item.title.$t}</a><br>
       <small>${new Date(item.published.$t).toLocaleDateString()}</small>
     `;
     feedBox.appendChild(div);
   });
 
+  // Setup click event on titles to open modal with full content
   document.querySelectorAll(".feed-item a").forEach(link => {
     link.onclick = e => {
       e.preventDefault();
@@ -78,64 +76,64 @@ function renderFeed(items) {
   });
 }
 
-function renderPagination(canNext) {
+// Render pagination buttons with enabling/disabling logic
+function renderPagination(canPrev, canNext) {
   paginationBox.innerHTML = `
-    <button id="prevBtn" ${prevPageTokens.length === 0 ? "disabled" : ""}>Previous</button>
-    <span>Page ${currentPage}</span>
+    <button id="prevBtn" ${!canPrev ? "disabled" : ""}>Previous</button>
+    <span style="margin: 0 10px;">Page ${Math.ceil(currentStartIndex / perPage)}</span>
     <button id="nextBtn" ${!canNext ? "disabled" : ""}>Next</button>
   `;
 
   document.getElementById("prevBtn").onclick = () => {
-    if (prevPageTokens.length > 0) {
-      nextPageToken = prevPageTokens.pop();
-      currentPage--;
-      loadFeed(feedUrlInput.value, nextPageToken, false);
+    if (canPrev) {
+      loadFeed(feedUrlInput.value, currentStartIndex - perPage);
     }
   };
 
   document.getElementById("nextBtn").onclick = () => {
     if (canNext) {
-      // Save current nextPageToken to prev stack before going forward
-      prevPageTokens.push(nextPageToken);
-      currentPage++;
-      loadFeed(feedUrlInput.value, nextPageToken, true);
+      loadFeed(feedUrlInput.value, currentStartIndex + perPage);
     }
   };
 }
 
-async function loadFeed(url, pageToken = "", forward = true) {
+// Load and render feed for given startIndex
+async function loadFeed(url, startIndex = 1) {
   feedBox.innerHTML = "<p>Loading...</p>";
 
-  const data = await fetchFeed(url, pageToken);
+  const data = await fetchFeed(url, startIndex);
 
   if (!data || !data.posts) {
     feedBox.innerHTML = "<p>Failed to load feed.</p>";
-    renderPagination(false);
+    renderPagination(false, false);
     return;
   }
 
   renderFeed(data.posts);
 
-  // Update nextPageToken for next page request
-  nextPageToken = data.nextPageToken;
+  // Check if Prev button enabled
+  const canPrev = startIndex > 1;
+  // Check if Next button enabled
+  const canNext = (startIndex + perPage) <= data.totalResults;
 
-  // Disable Next if no nextPageToken
-  renderPagination(nextPageToken !== null && nextPageToken !== undefined);
+  currentStartIndex = startIndex;
+
+  renderPagination(canPrev, canNext);
 }
 
+// Load button click handler
 loadBtn.onclick = () => {
   const url = feedUrlInput.value.trim();
   if (!url) {
     alert("Please enter a Blogger URL");
     return;
   }
-  currentPage = 1;
-  nextPageToken = null;
-  prevPageTokens = [];
+  currentStartIndex = 1;
   saveFeedUrl(url);
-  loadFeed(url);
+  loadFeed(url, currentStartIndex);
 };
 
+// Save and get feed URL from localStorage
 function saveFeedUrl(url) {
   localStorage.setItem(STORAGE_KEY, url);
 }
@@ -144,16 +142,16 @@ function getSavedFeedUrl() {
   return localStorage.getItem(STORAGE_KEY);
 }
 
-// Load saved feed url on page load
+// On page load, load saved feed URL if any
 window.onload = () => {
   const saved = getSavedFeedUrl();
   if (saved) {
     feedUrlInput.value = saved;
-    loadFeed(saved);
+    loadFeed(saved, 1);
   }
 };
 
-// Modal handling
+// Modal elements and handlers
 const modal = document.getElementById("postModal");
 const modalBody = document.getElementById("modalBody");
 document.getElementById("closeModal").onclick = () => (modal.style.display = "none");
@@ -164,7 +162,7 @@ function openModal(content) {
   modal.style.display = "block";
 }
 
-// PWA Install
+// PWA Install support
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("sw.js");
 }
