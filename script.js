@@ -14,26 +14,21 @@ document.body.appendChild(paginationBox);
 // Fetch feed with start-index pagination
 async function fetchFeed(url, startIndex = 1) {
   try {
-    // Build feed URL with start-index and max-results
     let feedUrl = url.replace(/\/$/, '') + `/feeds/posts/summary?alt=json&max-results=${perPage}&start-index=${startIndex}`;
+    console.log("Fetching feed URL:", feedUrl);
 
     const res = await fetch(feedUrl);
     if (!res.ok) throw new Error('Network error');
 
     const data = await res.json();
+    console.log("Feed data:", data);
 
-    // Total posts available
     const totalResults = data.feed.openSearch$totalResults ? parseInt(data.feed.openSearch$totalResults.$t, 10) : 0;
-
-    // Posts array
     const posts = data.feed.entry || [];
 
-    return {
-      posts,
-      totalResults,
-    };
+    return { posts, totalResults };
   } catch (e) {
-    console.error(e);
+    console.error("Fetch error:", e);
     return { posts: [], totalResults: 0 };
   }
 }
