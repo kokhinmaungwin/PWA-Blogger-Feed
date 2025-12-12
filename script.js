@@ -5,29 +5,41 @@ const STORAGE_KEY = 'savedFeedUrl';
 
 let currentPage = 1;
 let perPage = 10;
+let nextPageToken = null;
+let prevPageTokens = []; 
 
 // Pagination buttons
 const paginationBox = document.createElement("div");
 paginationBox.id = "pagination";
 document.body.appendChild(paginationBox);
 
-async function fetchFeed(url, page = 1) {
+async function fetchFeed(url, pageToken = "") {
   try {
-    const startIndex = (page - 1) * perPage + 1;
+    let feedUrl = url.replace(/\/$/, '') + `/feeds/posts/summary?alt=json&max-results=${perPage}`;
+    if (pageToken) {
+      feedUrl += `&pageToken=${pageToken}`;
+    }
 
-    const rss =
-      url.replace(/\/$/, '') +
-      `/feeds/posts/default?alt=rss&max-results=${perPage}&start-index=${startIndex}`;
-
-    const api = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rss)}`;
-
-    const res = await fetch(api);
+    const res = await fetch(feedUrl);
     if (!res.ok) throw new Error('Network error');
 
-    return await res.json();
+    const data = await res.json();
+
+    // Extract posts
+    const posts = data.feed.entry || [];
+
+    // Extract nextPageToken if available
+    const nextToken = data.feed.openSearch$startIndex
+      ? data.feed.openSearch$startIndex.$t
+      : null;
+
+    return {
+      posts,
+      nextPageToken: nextToken,
+    };
   } catch (e) {
     console.error(e);
-    return null;
+    return { posts: [], nextPageToken: null };
   }
 }
 
@@ -45,14 +57,15 @@ function renderFeed(items) {
   feedBox.innerHTML = "";
 
   items.forEach(item => {
-    const img = item.thumbnail || extractImage(item.description);
+    // item.media$thumbnail or item.content
+    const img = (item.media$thumbnail && item.media$thumbnail.url) || extractImage(item.content.$t);
 
     const div = document.createElement("div");
     div.className = "feed-item";
     div.innerHTML = `
       ${img ? `<img src="${img}" class="feed-img">` : ""}
-      <a href="#" data-content="${encodeURIComponent(item.description)}">${item.title}</a><br>
-      <small>${new Date(item.pubDate).toLocaleDateString()}</small>
+      <a href="#" data-content="${encodeURIComponent(item.content.$t)}">${item.title.$t}</a><br>
+      <small>${new Date(item.published.$t).toLocaleDateString()}</small>
     `;
     feedBox.appendChild(div);
   });
@@ -65,37 +78,49 @@ function renderFeed(items) {
   });
 }
 
-function renderPagination() {
+function renderPagination(canNext) {
   paginationBox.innerHTML = `
-    <button id="prevBtn">Previous</button>
+    <button id="prevBtn" ${prevPageTokens.length === 0 ? "disabled" : ""}>Previous</button>
     <span>Page ${currentPage}</span>
-    <button id="nextBtn">Next</button>
+    <button id="nextBtn" ${!canNext ? "disabled" : ""}>Next</button>
   `;
 
   document.getElementById("prevBtn").onclick = () => {
-    if (currentPage > 1) {
+    if (prevPageTokens.length > 0) {
+      nextPageToken = prevPageTokens.pop();
       currentPage--;
-      loadFeed(feedUrlInput.value, currentPage);
+      loadFeed(feedUrlInput.value, nextPageToken, false);
     }
   };
 
   document.getElementById("nextBtn").onclick = () => {
-    currentPage++;
-    loadFeed(feedUrlInput.value, currentPage);
+    if (canNext) {
+      // Save current nextPageToken to prev stack before going forward
+      prevPageTokens.push(nextPageToken);
+      currentPage++;
+      loadFeed(feedUrlInput.value, nextPageToken, true);
+    }
   };
 }
 
-async function loadFeed(url, page = 1) {
+async function loadFeed(url, pageToken = "", forward = true) {
   feedBox.innerHTML = "<p>Loading...</p>";
 
-  const data = await fetchFeed(url, page);
+  const data = await fetchFeed(url, pageToken);
 
-  if (data && data.items) {
-    renderFeed(data.items);
-    renderPagination();
-  } else {
+  if (!data || !data.posts) {
     feedBox.innerHTML = "<p>Failed to load feed.</p>";
+    renderPagination(false);
+    return;
   }
+
+  renderFeed(data.posts);
+
+  // Update nextPageToken for next page request
+  nextPageToken = data.nextPageToken;
+
+  // Disable Next if no nextPageToken
+  renderPagination(nextPageToken !== null && nextPageToken !== undefined);
 }
 
 loadBtn.onclick = () => {
@@ -105,8 +130,10 @@ loadBtn.onclick = () => {
     return;
   }
   currentPage = 1;
+  nextPageToken = null;
+  prevPageTokens = [];
   saveFeedUrl(url);
-  loadFeed(url, 1);
+  loadFeed(url);
 };
 
 function saveFeedUrl(url) {
@@ -117,16 +144,16 @@ function getSavedFeedUrl() {
   return localStorage.getItem(STORAGE_KEY);
 }
 
-// Load saved
+// Load saved feed url on page load
 window.onload = () => {
   const saved = getSavedFeedUrl();
   if (saved) {
     feedUrlInput.value = saved;
-    loadFeed(saved, 1);
+    loadFeed(saved);
   }
 };
 
-// Modal
+// Modal handling
 const modal = document.getElementById("postModal");
 const modalBody = document.getElementById("modalBody");
 document.getElementById("closeModal").onclick = () => (modal.style.display = "none");
