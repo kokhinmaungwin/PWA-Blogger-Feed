@@ -101,12 +101,20 @@ Your app will be published instantly.
 
 To run the app locally:
 
-```bash
+
 # Clone the repo
+
+```bash
+
 git clone https://github.com/kokhinmaungwin/blogger-feed-pwa.git
 cd blogger-feed-pwa
 
+```
+
 # Start a simple local server (Python example)
+
+```bash
+
 python3 -m http.server 8080
 
 ```
