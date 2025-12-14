@@ -32,16 +32,18 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
+  // Blogger API request ကို cache မသုံးဘဲ network မှ fetch လုပ်ရန်
   if (event.request.url.includes('/feeds/posts/summary')) {
     event.respondWith(
       fetch(event.request).catch(() => caches.match('./offline.html'))
     );
-    return;  
+    return;  // ဒီ request အတွက် အောက် fetch logic မသွားဘူး
   }
 
-  self.addEventListener('fetch', event => {
+  // GET method မဟုတ်ရင် return
   if (event.request.method !== 'GET') return;
 
+  // အခြား request များအတွက် cache first strategy
   event.respondWith(
     caches.match(event.request).then(cachedResp => {
       return cachedResp || fetch(event.request).then(networkResp => {
