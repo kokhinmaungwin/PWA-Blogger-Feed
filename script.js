@@ -17,8 +17,8 @@ async function fetchFeed(url, startIndex = 1) {
     let feedUrl = url.replace(/\/$/, '') + `/feeds/posts/summary?alt=json&max-results=${perPage}&start-index=${startIndex}`;
     
     // CORS proxy သုံးချင်ရင် ဒီလို uncomment ပြီးသုံးပါ
-    // const proxy = "https://cors-anywhere.herokuapp.com/";
-    // feedUrl = proxy + feedUrl;
+    const proxy = "https://cors-anywhere.herokuapp.com/";
+    feedUrl = proxy + feedUrl;
 
     console.log("Fetching feed URL:", feedUrl);
 
