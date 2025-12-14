@@ -32,8 +32,14 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-  if (event.request.method !== 'GET') return;
+  if (event.request.url.includes('/feeds/posts/summary')) {
+    event.respondWith(
+      fetch(event.request).catch(() => caches.match('./offline.html'))
+    );
+    return;  
+  }
 
+  if (event.request.method !== 'GET') return;
   event.respondWith(
     caches.match(event.request).then(cachedResp => {
       return cachedResp || fetch(event.request).then(networkResp => {
