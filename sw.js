@@ -7,7 +7,7 @@ const urlsToCache = [
   './manifest.json',
   './icons/icon-192.png', 
   './icons/icon-512.png',
-  './offline.html'  // Add offline fallback page if you have one
+  './offline.html' 
 ];
 
 self.addEventListener('install', event => {
@@ -39,7 +39,9 @@ self.addEventListener('fetch', event => {
     return;  
   }
 
+  self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
+
   event.respondWith(
     caches.match(event.request).then(cachedResp => {
       return cachedResp || fetch(event.request).then(networkResp => {
