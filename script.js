@@ -10,7 +10,7 @@ const paginationBox = document.createElement("div");
 paginationBox.id = "pagination";
 document.body.appendChild(paginationBox);
 
-async function fetchFeed(url, startIndex = 1) {
+async async function fetchFeed(url, startIndex = 1) {
   try {
     // Blogger API max-results အများဆုံး 100 လောက်ပဲ သတ်မှတ်သင့်သည်
     // start-index ကို သုံးထားပေမယ့် deprecated ဖြစ်နိုင်တဲ့အတွက် သတိထားပါ
@@ -38,7 +38,6 @@ async function fetchFeed(url, startIndex = 1) {
     return { posts: [], totalResults: 0 };
   }
 }
-
 function extractImage(desc) {
   const match = desc.match(/<img[^>]+src="([^">]+)"/);
   return match ? match[1] : "";
